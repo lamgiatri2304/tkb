@@ -434,6 +434,12 @@
                 </div>
             </div>
 
+            <!-- REASON FIELD (For other_study / other_break) -->
+            <div id="reason-task-field" class="hidden mb-6 space-y-2">
+                <label class="block text-xs font-bold text-slate-800 uppercase tracking-wider">Ghi lý do</label>
+                <input type="text" id="input-task-reason" placeholder="Đi siêu thị / nghỉ ngơi / việc cá nhân..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-slate-900 transition">
+            </div>
+
             <div class="flex justify-end gap-3 pt-2 border-t border-slate-100">
                 <button onclick="closeTaskModal()" class="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition">Hủy</button>
                 <button onclick="submitTask()" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white transition shadow-md shadow-slate-900/10">Xác Nhận</button>
@@ -534,6 +540,8 @@
             'school': { id: 'school', name: 'Đi Học Ở Trường', badgeBg: 'bg-slate-700', bg: 'bg-slate-700/10', border: 'border-slate-500/40', text: 'text-slate-900', barColor: '#334155' },
             'school_hw': { id: 'school_hw', name: 'BTVN Trường', badgeBg: 'bg-slate-500', bg: 'bg-slate-500/10', border: 'border-slate-400/40', text: 'text-slate-900', barColor: '#64748b' },
             'ielts': { id: 'ielts', name: 'IELTS', badgeBg: 'bg-purple-600', bg: 'bg-purple-500/10', border: 'border-purple-400/40', text: 'text-purple-900', barColor: '#9333ea' },
+            'other_study': { id: 'other_study', name: 'Khác (học tập)', badgeBg: 'bg-stone-600', bg: 'bg-stone-500/10', border: 'border-stone-500/40', text: 'text-stone-900', barColor: '#57534e' },
+            'other_break': { id: 'other_break', name: 'Khác (nghỉ)', badgeBg: 'bg-stone-400', bg: 'bg-stone-400/10', border: 'border-stone-300/40', text: 'text-stone-800', barColor: '#a8a29e' },
         };
 
         const DAYS_OF_WEEK = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ Nhật'];
@@ -817,7 +825,7 @@
                 const rawTasks = state.schedule[dateStr] || [];
                 const computedTasks = getCalculatedTasks(rawTasks);
 
-                const nonSchoolTasks = computedTasks.filter(t => t.subjectId !== 'school');
+                const nonSchoolTasks = computedTasks.filter(t => t.subjectId !== 'school' && t.subjectId !== 'other_break');
                 const totalMins = nonSchoolTasks.reduce((sum, t) => sum + t.duration, 0);
                 const compMins = nonSchoolTasks.filter(t => t.completed).reduce((sum, t) => sum + t.duration, 0);
                 const percent = totalMins > 0 ? Math.round((compMins / totalMins) * 100) : 0;
@@ -953,6 +961,16 @@
                             ` : ''}
                         `;
                     }
+
+                    if (task.subjectId === 'other_study' || task.subjectId === 'other_break') {
+                        taskEl.style.cursor = 'pointer';
+                        taskEl.addEventListener('dblclick', (e) => {
+                            if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.closest('button')) return;
+                            const reasonMsg = task.reason && task.reason.trim() !== "" ? task.reason : "Chưa có lý do được ghi.";
+                            showAlertModal('Lý Do', reasonMsg);
+                        });
+                    }
+
                     col.appendChild(taskEl);
                 });
 
@@ -1058,6 +1076,14 @@
                 document.getElementById('input-duration').value = isEditing ? existingTask.duration : 60;
             }
 
+            if (subjectId === 'other_study' || subjectId === 'other_break') {
+                document.getElementById('reason-task-field').classList.remove('hidden');
+                document.getElementById('input-task-reason').value = (isEditing && existingTask && existingTask.reason) ? existingTask.reason : '';
+            } else {
+                document.getElementById('reason-task-field').classList.add('hidden');
+                document.getElementById('input-task-reason').value = '';
+            }
+
             hideModalError();
             
             const modal = document.getElementById('modal-task');
@@ -1138,11 +1164,29 @@
                 return showModalError(`Bị <strong>trùng ${collision.overlapMins} phút</strong> với môn <strong>"${collision.subjectName}"</strong> (${collision.conflictingTask.effectiveStartTime} - ${collision.conflictingTask.effectiveEndTime}).`);
             }
 
+            let reason = "";
+            if (state.draggedSubjectId === 'other_study' || state.draggedSubjectId === 'other_break') {
+                reason = document.getElementById('input-task-reason').value.trim();
+            }
+
             if (isEditing) {
                 const task = state.schedule[dateStr].find(t => t.id === state.editingTaskId);
-                if (task) { task.subjectId = state.draggedSubjectId; task.startTime = candidateStartTime; task.duration = candidateDuration; }
+                if (task) { 
+                    task.subjectId = state.draggedSubjectId; 
+                    task.startTime = candidateStartTime; 
+                    task.duration = candidateDuration; 
+                    if (state.draggedSubjectId === 'other_study' || state.draggedSubjectId === 'other_break') {
+                        task.reason = reason;
+                    } else {
+                        delete task.reason;
+                    }
+                }
             } else {
-                state.schedule[dateStr].push({ id: Date.now() + Math.random(), subjectId: state.draggedSubjectId, startTime: candidateStartTime, duration: candidateDuration, completed: false });
+                let newTask = { id: Date.now() + Math.random(), subjectId: state.draggedSubjectId, startTime: candidateStartTime, duration: candidateDuration, completed: false };
+                if (state.draggedSubjectId === 'other_study' || state.draggedSubjectId === 'other_break') {
+                    newTask.reason = reason;
+                }
+                state.schedule[dateStr].push(newTask);
             }
 
             saveData(); updateWeekView(); closeTaskModal();
@@ -1293,7 +1337,7 @@
                 let dayPlanned = 0, dayComp = 0;
 
                 tasks.forEach(t => {
-                    if (t.subjectId === 'school') return;
+                    if (t.subjectId === 'school' || t.subjectId === 'other_break') return;
                     totalMins += t.duration; dayPlanned += t.duration;
                     if (subjectStats[t.subjectId]) subjectStats[t.subjectId].planned += t.duration;
                     if (t.completed) {
@@ -1332,7 +1376,13 @@
 
             const subLabels = [], subPlanned = [], subComp = [], subColors = [];
             Object.entries(currentData.subjectStats).forEach(([id, stats]) => {
-                if (stats.planned > 0) { subLabels.push(SUBJECTS[id].name); subPlanned.push(stats.planned / 60); subComp.push(stats.completed / 60); subColors.push(SUBJECTS[id].barColor); }
+                if (stats.planned > 0) { 
+                    const labelName = id === 'other_study' ? 'Khác' : SUBJECTS[id].name;
+                    subLabels.push(labelName); 
+                    subPlanned.push(stats.planned / 60); 
+                    subComp.push(stats.completed / 60); 
+                    subColors.push(SUBJECTS[id].barColor); 
+                }
             });
 
             state.charts.chartSubjectBar = new Chart(document.getElementById('chart-subject-bar').getContext('2d'), {
