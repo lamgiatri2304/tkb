@@ -557,7 +557,8 @@
         };
         
         // Trạng thái thu gọn/mở rộng Box Môn Học
-        let isPaletteCollapsed = false;
+        // Đã sửa lại mặc định là true theo yêu cầu
+        let isPaletteCollapsed = true;
 
         function init() {
             const savedData = localStorage.getItem('timetable_pure_data_v3');
@@ -571,7 +572,14 @@
             }
 
             initSpotlight();
-            renderSubjects();
+            
+            // Thiết lập trạng thái mặc định là thu gọn khi tải trang.
+            // Bằng cách gán tạm là false và gọi toggleSubjectPalette(), 
+            // hàm này sẽ tự động set biến về true và áp dụng toàn bộ logic CSS thu gọn
+            // thay vì phải lặp lại code thêm class DOM.
+            isPaletteCollapsed = false;
+            toggleSubjectPalette(); // Render môn học đã bao gồm bên trong hàm này
+
             updateWeekView();
 
             if (state.liveTimer) clearInterval(state.liveTimer);
