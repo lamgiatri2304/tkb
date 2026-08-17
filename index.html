@@ -526,6 +526,15 @@
         const END_HOUR = 24;
         const HOUR_HEIGHT = 60; // 60px per hour
         const TOTAL_GRID_HEIGHT = (END_HOUR - START_HOUR) * HOUR_HEIGHT;
+
+        // --- HỆ QUY CHIẾU THỜI GIAN DUY NHẤT ---
+        function minutesToGridPx(minutes) {
+            return ((minutes - START_HOUR * 60) / 60) * HOUR_HEIGHT;
+        }
+
+        function gridPxToMinutes(px) {
+            return (px / HOUR_HEIGHT) * 60 + (START_HOUR * 60);
+        }
         
         const SUBJECTS = {
             'emp_main': { id: 'emp_main', name: 'Empire Ca Chính', badgeBg: 'bg-amber-500', bg: 'bg-amber-500/10', border: 'border-amber-500/40', text: 'text-amber-900', barColor: '#b45309' },
@@ -556,8 +565,6 @@
             liveTimer: null
         };
         
-        // Trạng thái thu gọn/mở rộng Box Môn Học
-        // Đã sửa lại mặc định là true theo yêu cầu
         let isPaletteCollapsed = true;
 
         function init() {
@@ -573,12 +580,8 @@
 
             initSpotlight();
             
-            // Thiết lập trạng thái mặc định là thu gọn khi tải trang.
-            // Bằng cách gán tạm là false và gọi toggleSubjectPalette(), 
-            // hàm này sẽ tự động set biến về true và áp dụng toàn bộ logic CSS thu gọn
-            // thay vì phải lặp lại code thêm class DOM.
             isPaletteCollapsed = false;
-            toggleSubjectPalette(); // Render môn học đã bao gồm bên trong hàm này
+            toggleSubjectPalette(); 
 
             updateWeekView();
 
@@ -605,7 +608,6 @@
             const headerIcon = document.getElementById('palette-icon');
             
             if (isPaletteCollapsed) {
-                // Thu nhỏ
                 card.classList.remove('lg:w-72', 'w-full', 'p-6');
                 card.classList.add('w-20', 'p-4', 'mx-auto', 'lg:mx-0'); 
                 
@@ -620,7 +622,6 @@
                 container.classList.remove('grid-cols-2', 'lg:grid-cols-1');
                 container.classList.add('grid-cols-1');
             } else {
-                // Mở rộng
                 card.classList.remove('w-20', 'p-4', 'mx-auto', 'lg:mx-0');
                 card.classList.add('lg:w-72', 'w-full', 'p-6');
                 
@@ -636,7 +637,6 @@
                 container.classList.add('grid-cols-2', 'lg:grid-cols-1');
             }
             
-            // Re-render subjects để cập nhật CSS cho các viên thuốc
             renderSubjects();
         }
 
@@ -696,7 +696,7 @@
             const currentMins = now.hour() * 60 + now.minute();
             const startMins = START_HOUR * 60;
             if (currentMins >= startMins) {
-                const scrollPos = Math.max(0, (currentMins - startMins) - 150);
+                const scrollPos = Math.max(0, minutesToGridPx(currentMins) - 150);
                 const scrollContainer = document.getElementById('timetable-scroll-container');
                 if (scrollContainer) scrollContainer.scrollTop = scrollPos;
             }
@@ -714,14 +714,12 @@
                 const el = document.createElement('div');
                 
                 if (isPaletteCollapsed) {
-                    // Giao diện khi Box Môn Học bị thu nhỏ
                     el.className = `luxury-pill ${sub.bg} border ${sub.border} p-3 rounded-xl flex items-center justify-center select-none`;
-                    el.title = sub.name; // Hiển thị tooltip tên môn học
+                    el.title = sub.name;
                     el.innerHTML = `
                         <span class="w-3.5 h-3.5 rounded-full ${sub.badgeBg} shadow-sm"></span>
                     `;
                 } else {
-                    // Giao diện đầy đủ bình thường
                     el.className = `luxury-pill ${sub.bg} border ${sub.border} p-3 rounded-xl flex items-center justify-between select-none`;
                     el.removeAttribute('title');
                     el.innerHTML = `
@@ -863,7 +861,7 @@
             timeAxis.style.height = `${TOTAL_GRID_HEIGHT}px`;
 
             for (let hour = START_HOUR; hour <= END_HOUR; hour++) {
-                const topPx = (hour - START_HOUR) * HOUR_HEIGHT;
+                const topPx = minutesToGridPx(hour * 60);
                 const label = document.createElement('div');
                 label.className = 'absolute right-2 text-[11px] font-mono font-bold text-slate-400 -translate-y-1/2 flex items-center gap-1';
                 label.style.top = `${topPx}px`;
@@ -898,7 +896,8 @@
                         col.classList.remove('drag-over');
                         if (state.draggedSubjectId) {
                             const rect = col.getBoundingClientRect();
-                            const dropMins = Math.floor(Math.max(0, e.clientY - rect.top) / HOUR_HEIGHT * 60) + (START_HOUR * 60);
+                            const dropPx = Math.max(0, e.clientY - rect.top);
+                            const dropMins = Math.floor(gridPxToMinutes(dropPx));
                             const dropTime = minsToTime(Math.min(23 * 60 + 45, Math.max(START_HOUR * 60, Math.floor(dropMins / 15) * 15)));
                             openTaskModal(dateStr, state.draggedSubjectId, null, dropTime);
                         }
@@ -912,7 +911,7 @@
                     if (!subject) return;
 
                     const isSchool = task.subjectId === 'school';
-                    const topPx = ((task.startMins - (START_HOUR * 60)) / 60) * HOUR_HEIGHT;
+                    const topPx = minutesToGridPx(task.startMins);
                     const heightPx = Math.max(28, (task.duration / 60) * HOUR_HEIGHT);
 
                     const isShortCard = heightPx < 60; 
@@ -1001,10 +1000,11 @@
 
             const currentMinsTotal = now.hour() * 60 + now.minute();
             if (currentMinsTotal >= START_HOUR * 60 && currentMinsTotal <= END_HOUR * 60) {
-                const topPx = ((currentMinsTotal - START_HOUR * 60) / 60) * HOUR_HEIGHT;
+                const topPx = minutesToGridPx(currentMinsTotal);
                 const indicator = document.createElement('div');
                 indicator.id = 'live-time-indicator';
-                indicator.className = 'absolute left-0 right-0 z-30 pointer-events-none flex items-center';
+                // THÊM: -translate-y-1/2 giúp mép đường màu đỏ nằm đúng ở điểm pixel đã tính (topPx), tránh sai số 15 phút do độ dày của text chứa chữ "16:41"
+                indicator.className = 'absolute left-0 right-0 z-30 pointer-events-none flex items-center -translate-y-1/2';
                 indicator.style.top = `${topPx}px`;
                 indicator.innerHTML = `
                     <div class="w-3 h-3 rounded-full bg-rose-500 -ml-1.5 shadow-md shadow-rose-500/50 animate-pulse shrink-0"></div>
