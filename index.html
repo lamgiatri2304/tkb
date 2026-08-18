@@ -19,6 +19,8 @@
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/isoWeek.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/isBetween.js"></script>
+    <!-- Thêm Canvas Confetti cho hiệu ứng hoàn thành -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script>
         dayjs.extend(window.dayjs_plugin_isoWeek);
         dayjs.extend(window.dayjs_plugin_isBetween);
@@ -1200,10 +1202,26 @@
             saveData(); updateWeekView(); closeTaskModal();
         }
 
+        // --- HÀM TOGGLE TASK STATUS ĐƯỢC CHỈNH SỬA ĐỂ THÊM HIỆU ỨNG CONFETTI ---
         function toggleTaskStatus(dateStr, taskId) {
             if (isDayLocked(dateStr)) return;
             const task = state.schedule[dateStr]?.find(t => t.id === taskId);
-            if (task) { task.completed = !task.completed; saveData(); updateWeekView(); }
+            
+            if (task) { 
+                task.completed = !task.completed; 
+                saveData(); 
+                updateWeekView(); 
+
+                // Nếu task được đánh dấu là hoàn thành thì bắn pháo giấy
+                if (task.completed) {
+                    confetti({
+                        particleCount: 150, // Số lượng pháo giấy
+                        spread: 80,         // Độ phủ rộng
+                        origin: { y: 0.6 }, // Vị trí bắn (hơi thấp xuống một chút)
+                        colors: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6']
+                    });
+                }
+            }
         }
 
         function deleteTask(dateStr, taskId) {
