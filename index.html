@@ -162,6 +162,23 @@
             background-image: linear-gradient(to bottom, #e2e8f0 1px, transparent 1px);
             background-size: 100% 60px;
         }
+
+        /* Thêm style cho Rich Text Editor của Daily Notes */
+        .note-content-input {
+            min-height: 40px;
+            outline: none;
+        }
+        .note-content-input[contenteditable]:empty::before {
+            content: attr(placeholder);
+            color: #94a3b8;
+            pointer-events: none;
+            display: block;
+        }
+        .note-content-input ul { list-style-type: disc; padding-left: 1.5rem; margin-top: 0.25rem; margin-bottom: 0.25rem; }
+        .note-content-input ol { list-style-type: decimal; padding-left: 1.5rem; margin-top: 0.25rem; margin-bottom: 0.25rem; }
+        .note-content-input b, .note-content-input strong { font-weight: bold; }
+        .note-content-input i, .note-content-input em { font-style: italic; }
+        .note-content-input u { text-decoration: underline; }
     </style>
 </head>
 
@@ -449,6 +466,58 @@
         </div>
     </div>
 
+    <!-- DAILY NOTES MODAL -->
+    <div id="modal-notes" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center z-50 transition-opacity">
+        <div class="absolute inset-0" onclick="closeDailyNotesPanel()"></div>
+        <div class="bg-white border border-slate-200 p-6 rounded-2xl shadow-2xl w-[90%] max-w-2xl transform transition-all scale-95 opacity-0 flex flex-col max-h-[90vh] relative z-10" id="modal-notes-content">
+            <div class="flex items-center justify-between mb-3 shrink-0">
+                <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                        <i class="fa-regular fa-clipboard text-lg"></i>
+                    </div>
+                    <div>
+                        <div class="leading-tight">Ghi Chú Ngày</div>
+                        <div id="modal-notes-subtitle" class="text-[11px] font-semibold text-slate-500 mt-0.5">--</div>
+                    </div>
+                </h3>
+                <button onclick="closeDailyNotesPanel()" class="text-slate-400 hover:text-slate-600 transition w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Editor Toolbar -->
+            <div class="flex items-center gap-1.5 mb-4 p-1.5 bg-slate-50 rounded-xl border border-slate-200 shrink-0 select-none overflow-x-auto">
+                <button type="button" onmousedown="event.preventDefault(); document.execCommand('fontSize', false, '3')" class="px-2.5 py-1 text-xs font-semibold rounded hover:bg-white hover:shadow-sm transition text-slate-700 border border-transparent hover:border-slate-200" title="Chữ thường">A</button>
+                <button type="button" onmousedown="event.preventDefault(); document.execCommand('fontSize', false, '5')" class="px-2.5 py-1 text-sm font-bold rounded hover:bg-white hover:shadow-sm transition text-slate-700 border border-transparent hover:border-slate-200" title="Chữ lớn">A+</button>
+                <div class="w-px h-4 bg-slate-300 mx-1"></div>
+                <button type="button" onmousedown="event.preventDefault(); document.execCommand('bold', false, null)" class="w-7 h-7 flex items-center justify-center rounded hover:bg-white hover:shadow-sm font-bold transition text-slate-700 border border-transparent hover:border-slate-200"><i class="fa-solid fa-bold text-xs"></i></button>
+                <button type="button" onmousedown="event.preventDefault(); document.execCommand('italic', false, null)" class="w-7 h-7 flex items-center justify-center rounded hover:bg-white hover:shadow-sm italic transition text-slate-700 border border-transparent hover:border-slate-200"><i class="fa-solid fa-italic text-xs"></i></button>
+                <button type="button" onmousedown="event.preventDefault(); document.execCommand('underline', false, null)" class="w-7 h-7 flex items-center justify-center rounded hover:bg-white hover:shadow-sm underline transition text-slate-700 border border-transparent hover:border-slate-200"><i class="fa-solid fa-underline text-xs"></i></button>
+                <div class="w-px h-4 bg-slate-300 mx-1"></div>
+                <button type="button" onmousedown="event.preventDefault(); document.execCommand('insertUnorderedList', false, null)" class="w-7 h-7 flex items-center justify-center rounded hover:bg-white hover:shadow-sm transition text-slate-700 border border-transparent hover:border-slate-200" title="Danh sách"><i class="fa-solid fa-list-ul text-xs"></i></button>
+                <div class="w-px h-4 bg-slate-300 mx-1"></div>
+                <div class="relative flex items-center justify-center hover:bg-white hover:shadow-sm border border-transparent hover:border-slate-200 rounded w-7 h-7 transition" title="Màu chữ">
+                    <input type="color" oninput="document.execCommand('foreColor', false, this.value)" class="w-5 h-5 p-0 border-0 rounded cursor-pointer bg-transparent">
+                </div>
+            </div>
+
+            <!-- List Container -->
+            <div id="notes-list-container" class="flex-grow overflow-y-auto pr-1 -mr-1 space-y-0 relative">
+                <!-- Items injected here -->
+            </div>
+
+            <!-- Footer -->
+            <div class="mt-4 pt-4 border-t border-slate-100 flex justify-between shrink-0 items-center">
+                <button onclick="addDailyNoteItem()" class="px-4 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-bold text-xs rounded-xl transition flex items-center gap-2 border border-indigo-100 shadow-sm">
+                    <i class="fa-solid fa-plus"></i> Thêm mục
+                </button>
+                <button onclick="closeDailyNotesPanel()" class="px-6 py-2.5 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white transition shadow-md shadow-slate-900/10">
+                    Lưu & Đóng
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- OTHER MODALS -->
     <!-- COPY MODAL -->
     <div id="modal-copy" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center z-50 transition-opacity">
@@ -559,6 +628,7 @@
 
         let state = {
             schedule: {}, 
+            dailyNotes: {},
             currentWeekStart: dayjs('2026-08-17').startOf('isoWeek'),
             draggedSubjectId: null,
             targetDropDate: null,
@@ -568,11 +638,30 @@
         };
         
         let isPaletteCollapsed = true;
+        
+        // --- Daily Notes State ---
+        let currentNotesDateStr = null;
+        let currentDefaultNoteTime = "07:30";
 
         function init() {
+            // Tương thích ngược: Đọc dữ liệu từ local storage và map schema cũ/mới
             const savedData = localStorage.getItem('timetable_pure_data_v3');
             if (savedData) {
-                try { state.schedule = JSON.parse(savedData); } catch (e) {}
+                try { 
+                    const parsed = JSON.parse(savedData);
+                    if (parsed.schedule !== undefined) {
+                        // Schema mới
+                        state.schedule = parsed.schedule;
+                        state.dailyNotes = parsed.dailyNotes || {};
+                    } else {
+                        // Schema cũ
+                        state.schedule = parsed;
+                        state.dailyNotes = {};
+                    }
+                } catch (e) {}
+            } else {
+                state.schedule = {};
+                state.dailyNotes = {};
             }
 
             const today = dayjs();
@@ -705,7 +794,11 @@
         }
 
         function saveData() {
-            localStorage.setItem('timetable_pure_data_v3', JSON.stringify(state.schedule));
+            // Lưu kết hợp cả schedule và dailyNotes tương thích với cấu trúc mới
+            localStorage.setItem('timetable_pure_data_v3', JSON.stringify({
+                schedule: state.schedule,
+                dailyNotes: state.dailyNotes
+            }));
         }
 
         function renderSubjects() {
@@ -971,14 +1064,19 @@
                         `;
                     }
 
-                    if (task.subjectId === 'other_study' || task.subjectId === 'other_break') {
-                        taskEl.style.cursor = 'pointer';
-                        taskEl.addEventListener('dblclick', (e) => {
-                            if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.closest('button')) return;
+                    // Tích hợp Daily Notes mở qua double-click cho tất cả các môn trừ 'other_break'
+                    taskEl.style.cursor = 'pointer';
+                    taskEl.addEventListener('dblclick', (e) => {
+                        // Không kích hoạt nếu click trúng checkbox/button
+                        if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.closest('button')) return;
+                        
+                        if (task.subjectId === 'other_break') {
                             const reasonMsg = task.reason && task.reason.trim() !== "" ? task.reason : "Chưa có lý do được ghi.";
                             showAlertModal('Lý Do', reasonMsg);
-                        });
-                    }
+                        } else {
+                            openDailyNotesPanel(dateStr, task.startTime);
+                        }
+                    });
 
                     col.appendChild(taskEl);
                 });
@@ -1005,7 +1103,6 @@
                 const topPx = minutesToGridPx(currentMinsTotal);
                 const indicator = document.createElement('div');
                 indicator.id = 'live-time-indicator';
-                // THÊM: -translate-y-1/2 giúp mép đường màu đỏ nằm đúng ở điểm pixel đã tính (topPx), tránh sai số 15 phút do độ dày của text chứa chữ "16:41"
                 indicator.className = 'absolute left-0 right-0 z-30 pointer-events-none flex items-center -translate-y-1/2';
                 indicator.style.top = `${topPx}px`;
                 indicator.innerHTML = `
@@ -1202,7 +1299,6 @@
             saveData(); updateWeekView(); closeTaskModal();
         }
 
-        // --- HÀM TOGGLE TASK STATUS ĐƯỢC CHỈNH SỬA ĐỂ THÊM HIỆU ỨNG CONFETTI ---
         function toggleTaskStatus(dateStr, taskId) {
             if (isDayLocked(dateStr)) return;
             const task = state.schedule[dateStr]?.find(t => t.id === taskId);
@@ -1212,12 +1308,11 @@
                 saveData(); 
                 updateWeekView(); 
 
-                // Nếu task được đánh dấu là hoàn thành thì bắn pháo giấy
                 if (task.completed) {
                     confetti({
-                        particleCount: 150, // Số lượng pháo giấy
-                        spread: 80,         // Độ phủ rộng
-                        origin: { y: 0.6 }, // Vị trí bắn (hơi thấp xuống một chút)
+                        particleCount: 150, 
+                        spread: 80,         
+                        origin: { y: 0.6 }, 
                         colors: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6']
                     });
                 }
@@ -1349,6 +1444,98 @@
             setTimeout(() => { document.getElementById('modal-custom-confirm').classList.add('hidden'); document.getElementById('modal-custom-confirm').classList.remove('flex'); }, 150);
         }
 
+        // --- CÁC HÀM XỬ LÝ DAILY NOTES ---
+        function openDailyNotesPanel(dateStr, defaultTime) {
+            currentNotesDateStr = dateStr;
+            currentDefaultNoteTime = defaultTime || "07:30";
+            
+            const dayObj = dayjs(dateStr);
+            const dayName = DAYS_OF_WEEK[dayObj.isoWeekday() - 1];
+            document.getElementById('modal-notes-subtitle').innerText = `${dayName} · ${dayObj.format('DD/MM/YYYY')}`;
+            
+            const container = document.getElementById('notes-list-container');
+            container.innerHTML = '';
+            
+            const items = state.dailyNotes[dateStr]?.items || [];
+            if (items.length === 0) {
+                checkEmptyNotes();
+            } else {
+                items.forEach(item => addDailyNoteItemHTML(item.time, item.content));
+            }
+
+            const modal = document.getElementById('modal-notes');
+            const content = document.getElementById('modal-notes-content');
+            modal.classList.remove('hidden'); 
+            modal.classList.add('flex');
+            requestAnimationFrame(() => {
+                content.classList.remove('scale-95', 'opacity-0'); 
+                content.classList.add('scale-100', 'opacity-100');
+            });
+        }
+
+        function addDailyNoteItem() {
+            const msg = document.getElementById('empty-notes-msg');
+            if (msg) msg.remove();
+            addDailyNoteItemHTML(currentDefaultNoteTime, '');
+        }
+
+        function addDailyNoteItemHTML(time, content) {
+            const container = document.getElementById('notes-list-container');
+            const el = document.createElement('div');
+            el.className = 'note-item flex gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-sm relative group mb-3 transition';
+            el.innerHTML = `
+                <button type="button" onclick="this.parentElement.remove(); checkEmptyNotes();" class="absolute -right-2 -top-2 w-6 h-6 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow-sm hover:bg-rose-500 hover:text-white z-10 border border-rose-100">
+                    <i class="fa-solid fa-xmark text-[10px]"></i>
+                </button>
+                <div class="shrink-0 mt-0.5">
+                    <input type="time" class="note-time-input w-[90px] bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-900 transition" value="${time}">
+                </div>
+                <div class="flex-grow min-w-0 bg-slate-50/50 rounded-lg border border-slate-100 p-2 focus-within:bg-white focus-within:border-slate-300 transition">
+                    <div class="note-content-input w-full min-h-[40px] text-sm text-slate-800 focus:outline-none focus:ring-0 leading-relaxed" contenteditable="true" placeholder="Nhập ghi chú vào đây...">${content}</div>
+                </div>
+            `;
+            container.appendChild(el);
+        }
+
+        function checkEmptyNotes() {
+            const container = document.getElementById('notes-list-container');
+            if (container.querySelectorAll('.note-item').length === 0) {
+                container.innerHTML = '<div id="empty-notes-msg" class="text-xs text-slate-400 text-center py-6 font-medium italic">Chưa có ghi chú cho ngày này.</div>';
+            }
+        }
+
+        function closeDailyNotesPanel() {
+            if (!currentNotesDateStr) return;
+            
+            // Tự động lưu
+            const container = document.getElementById('notes-list-container');
+            const items = [];
+            container.querySelectorAll('.note-item').forEach(el => {
+                const time = el.querySelector('.note-time-input').value;
+                const content = el.querySelector('.note-content-input').innerHTML;
+                
+                // Chỉ lưu nếu có time hoặc content không rỗng
+                if (time || content.replace(/<[^>]*>?/gm, '').trim() !== '') {
+                    items.push({ id: Date.now() + Math.random(), time, content });
+                }
+            });
+            
+            if (!state.dailyNotes) state.dailyNotes = {};
+            state.dailyNotes[currentNotesDateStr] = { items };
+            saveData();
+
+            const modal = document.getElementById('modal-notes');
+            const contentEl = document.getElementById('modal-notes-content');
+            contentEl.classList.remove('scale-100', 'opacity-100');
+            contentEl.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                currentNotesDateStr = null;
+            }, 150);
+        }
+
+        // --- CẤU HÌNH BIỂU ĐỒ ---
         Chart.defaults.color = '#64748b';
         Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
 
@@ -1358,8 +1545,11 @@
 
             Object.keys(SUBJECTS).forEach(key => { if (key !== 'school') subjectStats[key] = { planned: 0, completed: 0 }; });
 
+            const today = dayjs().startOf('day');
+
             for (let i = 0; i < 7; i++) {
-                const tasks = getCalculatedTasks(state.schedule[weekStartDayjs.add(i, 'day').format('YYYY-MM-DD')] || []);
+                const currentDayStart = weekStartDayjs.add(i, 'day').startOf('day');
+                const tasks = getCalculatedTasks(state.schedule[currentDayStart.format('YYYY-MM-DD')] || []);
                 let dayPlanned = 0, dayComp = 0;
 
                 tasks.forEach(t => {
@@ -1371,7 +1561,24 @@
                         if (subjectStats[t.subjectId]) subjectStats[t.subjectId].completed += t.duration;
                     }
                 });
-                dailyStats.push({ day: DAYS_OF_WEEK[i], planned: dayPlanned / 60, completed: dayComp / 60 });
+
+                // Logic hiển thị biểu đồ Daily theo yêu cầu
+                let finalComp = null;
+                let finalPlanned = null;
+
+                if (currentDayStart.isBefore(today) || currentDayStart.isSame(today)) {
+                    // Đã qua hoặc Hôm nay: Chỉ hiện Đã Học
+                    finalComp = dayComp / 60;
+                } else {
+                    // Tương lai: Chỉ hiện Dự Kiến
+                    finalPlanned = dayPlanned / 60;
+                }
+
+                dailyStats.push({ 
+                    day: DAYS_OF_WEEK[i], 
+                    planned: finalPlanned, 
+                    completed: finalComp 
+                });
             }
             return { totalMins, compMins, subjectStats, dailyStats };
         }
@@ -1425,8 +1632,22 @@
 
             state.charts.chartDaily = new Chart(document.getElementById('chart-daily-completion').getContext('2d'), {
                 type: 'bar',
-                data: { labels: currentData.dailyStats.map(d => d.day), datasets: [{ label: 'Đã Học', data: currentData.dailyStats.map(d => d.completed), backgroundColor: '#0f172a', borderRadius: 6 }, { label: 'Dự Kiến', data: currentData.dailyStats.map(d => d.planned), backgroundColor: '#e2e8f0', borderRadius: 6 }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } } }
+                data: { 
+                    labels: currentData.dailyStats.map(d => d.day), 
+                    datasets: [
+                        { label: 'Đã Học', data: currentData.dailyStats.map(d => d.completed), backgroundColor: '#10b981', borderRadius: 6 }, 
+                        { label: 'Dự Kiến', data: currentData.dailyStats.map(d => d.planned), backgroundColor: '#e2e8f0', borderRadius: 6 }
+                    ] 
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: { position: 'top' } }, 
+                    scales: { 
+                        y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, 
+                        x: { grid: { display: false }, stacked: true } 
+                    } 
+                }
             });
         }
 
