@@ -353,10 +353,18 @@
                 </div>
             </div>
             
-            <div class="luxury-card p-6">
-                <h3 class="font-bold text-slate-900 text-base mb-1">Tiến Độ Theo Từng Ngày Trong Tuần</h3>
-                <p class="text-xs text-slate-400 mb-6">Chi tiết giờ học thực tế theo các ngày</p>
-                <div class="h-[280px] w-full">
+            <div class="luxury-card p-6 flex flex-col">
+                <div class="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-6">
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-base mb-1" id="daily-chart-title">Tiến Độ Theo Từng Ngày Trong Tuần</h3>
+                        <p class="text-xs text-slate-400" id="daily-chart-desc">Chi tiết giờ học thực tế theo các ngày</p>
+                    </div>
+                    <div class="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/60 shrink-0">
+                        <button id="btn-chart-day" onclick="setDailyChartMode('day')" class="px-4 py-1.5 text-xs font-bold rounded-lg bg-white text-slate-800 shadow-sm transition">Theo Ngày</button>
+                        <button id="btn-chart-week" onclick="setDailyChartMode('week')" class="px-4 py-1.5 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-700 transition">Theo Tuần</button>
+                    </div>
+                </div>
+                <div class="h-[280px] w-full mt-auto">
                     <canvas id="chart-daily-completion"></canvas>
                 </div>
             </div>
@@ -634,7 +642,8 @@
             targetDropDate: null,
             editingTaskId: null,
             charts: {},
-            liveTimer: null
+            liveTimer: null,
+            dailyChartMode: 'day' // Trạng thái chế độ xem biểu đồ hàng ngày/toàn giai đoạn
         };
         
         let isPaletteCollapsed = true;
@@ -1583,6 +1592,49 @@
             return { totalMins, compMins, subjectStats, dailyStats };
         }
 
+        // Helper tính toán dữ liệu toàn bộ các tuần từ 07/09/2026 đến nay
+        function getAllWeeksData() {
+            const startDate = dayjs('2026-09-07').startOf('isoWeek');
+            const endDate = dayjs().startOf('isoWeek');
+            const labels = [];
+            const data = [];
+            
+            let current = startDate;
+            let weekNum = 1;
+            
+            while (current.isBefore(endDate) || current.isSame(endDate, 'day')) {
+                labels.push(`Tuần ${weekNum} (${current.format('DD/MM')})`);
+                const weekData = getWeekData(current);
+                data.push(weekData.compMins / 60); // Đổi sang giờ
+                
+                current = current.add(1, 'week');
+                weekNum++;
+            }
+            
+            return { labels, data };
+        }
+
+        function setDailyChartMode(mode) {
+            state.dailyChartMode = mode;
+            
+            const btnDay = document.getElementById('btn-chart-day');
+            const btnWeek = document.getElementById('btn-chart-week');
+            
+            if (mode === 'day') {
+                btnDay.className = 'px-4 py-1.5 text-xs font-bold rounded-lg bg-white text-slate-800 shadow-sm transition';
+                btnWeek.className = 'px-4 py-1.5 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-700 transition';
+                document.getElementById('daily-chart-title').innerText = 'Tiến Độ Theo Từng Ngày Trong Tuần';
+                document.getElementById('daily-chart-desc').innerText = 'Chi tiết giờ học thực tế theo các ngày';
+            } else {
+                btnWeek.className = 'px-4 py-1.5 text-xs font-bold rounded-lg bg-white text-slate-800 shadow-sm transition';
+                btnDay.className = 'px-4 py-1.5 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-700 transition';
+                document.getElementById('daily-chart-title').innerText = 'Tiến Độ Toàn Giai Đoạn';
+                document.getElementById('daily-chart-desc').innerText = 'Tổng số giờ đã học theo từng tuần (Từ 07/09/2026)';
+            }
+            
+            renderCharts(); // Cập nhật lại toàn bộ chart để phản ánh thay đổi
+        }
+
         function renderCharts() {
             const currentData = getWeekData(state.currentWeekStart);
             const prevData = getWeekData(state.currentWeekStart.subtract(1, 'week'));
@@ -1630,25 +1682,58 @@
                 options: { responsive: true, maintainAspectRatio: false, cutout: '80%', plugins: { legend: { display: false } } }
             });
 
-            state.charts.chartDaily = new Chart(document.getElementById('chart-daily-completion').getContext('2d'), {
-                type: 'bar',
-                data: { 
-                    labels: currentData.dailyStats.map(d => d.day), 
-                    datasets: [
-                        { label: 'Đã Học', data: currentData.dailyStats.map(d => d.completed), backgroundColor: '#10b981', borderRadius: 6 }, 
-                        { label: 'Dự Kiến', data: currentData.dailyStats.map(d => d.planned), backgroundColor: '#e2e8f0', borderRadius: 6 }
-                    ] 
-                },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    plugins: { legend: { position: 'top' } }, 
-                    scales: { 
-                        y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, 
-                        x: { grid: { display: false }, stacked: true } 
-                    } 
-                }
-            });
+            // Logic render biểu đồ Ngày / Tuần dựa vào trạng thái
+            if (state.dailyChartMode === 'day') {
+                state.charts.chartDaily = new Chart(document.getElementById('chart-daily-completion').getContext('2d'), {
+                    type: 'bar',
+                    data: { 
+                        labels: currentData.dailyStats.map(d => d.day), 
+                        datasets: [
+                            { label: 'Đã Học', data: currentData.dailyStats.map(d => d.completed), backgroundColor: '#10b981', borderRadius: 6 }, 
+                            { label: 'Dự Kiến', data: currentData.dailyStats.map(d => d.planned), backgroundColor: '#e2e8f0', borderRadius: 6 }
+                        ] 
+                    },
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false, 
+                        plugins: { legend: { position: 'top' } }, 
+                        scales: { 
+                            y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, 
+                            x: { grid: { display: false }, stacked: true } 
+                        } 
+                    }
+                });
+            } else {
+                const allWeeksData = getAllWeeksData();
+                state.charts.chartDaily = new Chart(document.getElementById('chart-daily-completion').getContext('2d'), {
+                    type: 'bar',
+                    data: { 
+                        labels: allWeeksData.labels, 
+                        datasets: [
+                            { 
+                                label: 'Số giờ đã học', 
+                                data: allWeeksData.data, 
+                                backgroundColor: '#3b82f6', // Màu xanh dương để phân biệt với biểu đồ ngày
+                                borderRadius: 6 
+                            }
+                        ] 
+                    },
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false,
+                        categoryPercentage: 0.8,
+                        barPercentage: 0.9,
+                        plugins: { legend: { position: 'top' } }, 
+                        scales: { 
+                            y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, 
+                            x: { 
+                                grid: { display: false },
+                                ticks: { maxRotation: 45, minRotation: 45 } // Nghiêng nhãn để không bị đè nhau khi có nhiều tuần
+                            } 
+                        } 
+                    }
+                });
+            }
         }
 
         window.onload = init;
